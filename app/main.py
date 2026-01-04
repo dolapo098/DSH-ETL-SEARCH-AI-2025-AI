@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.infrastructure.middleware.api_exception_handlers import register_exception_handlers
-from app.controllers.embedding_controller import router as embedding_router
-from app.controllers.search_controller import router as search_router
+from app.routes.embedding_routes import router as embedding_router
+from app.routes.search_routes import router as search_router
 
 
 @asynccontextmanager
@@ -24,4 +24,3 @@ app.include_router(embedding_router)
 app.include_router(search_router)
 
 register_exception_handlers(app)
-
