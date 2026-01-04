@@ -1,0 +1,21 @@
+from dataclasses import dataclass, field
+from typing import List, Optional, Any
+
+
+@dataclass
+class SearchResult:
+    identifier: str
+    score: float
+    title: Optional[str] = None
+    description: Optional[str] = None
+    content_type: Optional[str] = None
+    text: Optional[str] = None
+    metadata: Optional[dict[str, Any]] = None
+
+
+@dataclass
+class SearchQuery:
+    query_text: str
+    limit: int = 10
+    min_score: float = 0.0
+    content_types: Optional[List[str]] = field(default_factory=list)
