@@ -12,6 +12,7 @@ from app.infrastructure.data_access.repository_wrapper import RepositoryWrapper
 from app.infrastructure.data_access.session import AsyncSessionLocal
 from app.infrastructure.parsers.rocrate_parser import ROCrateParser
 from app.infrastructure.providers.pdf_document_extractor import PdfDocumentExtractor
+from app.infrastructure.providers.rtf_document_extractor import RtfDocumentExtractor
 from app.infrastructure.providers.sentence_transformer_embedding_provider import SentenceTransformerEmbeddingProvider
 from app.infrastructure.providers.word_document_extractor import WordDocumentExtractor
 from app.infrastructure.providers.zip_downloader import ZipDownloader
@@ -79,6 +80,11 @@ def get_word_extractor() -> WordDocumentExtractor:
     return WordDocumentExtractor()
 
 
+def get_rtf_extractor() -> RtfDocumentExtractor:
+    
+    return RtfDocumentExtractor()
+
+
 async def get_embedding_service(uow: RepositoryWrapper = Depends(get_repository_wrapper)) -> IEmbeddingService:
     
     return EmbeddingService(
@@ -87,6 +93,7 @@ async def get_embedding_service(uow: RepositoryWrapper = Depends(get_repository_
         zip_downloader=get_zip_downloader(),
         ro_crate_parser=get_rocrate_parser(),
         pdf_extractor=get_pdf_extractor(),
-        word_extractor=get_word_extractor()
+        word_extractor=get_word_extractor(),
+        rtf_extractor=get_rtf_extractor()
     )
 

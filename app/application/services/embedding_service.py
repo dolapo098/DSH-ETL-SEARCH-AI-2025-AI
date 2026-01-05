@@ -21,7 +21,8 @@ class EmbeddingService(IEmbeddingService):
         zip_downloader,
         ro_crate_parser,
         pdf_extractor,
-        word_extractor
+        word_extractor,
+        rtf_extractor
     ):
         self._repo = repository_wrapper
         self._semantic = semantic_search_service
@@ -29,7 +30,8 @@ class EmbeddingService(IEmbeddingService):
         self._ro_crate_parser = ro_crate_parser
         self._extractors = {
             ".pdf": pdf_extractor,
-            ".docx": word_extractor
+            ".docx": word_extractor,
+            ".rtf": rtf_extractor
         }
 
     async def process_dataset_heavy_lifting(self, dataset_metadata_id: int) -> bool:
@@ -62,10 +64,14 @@ class EmbeddingService(IEmbeddingService):
             dataset_metadata_id
         )
 
+        logger.info(f"Processing {len(supporting_document_zips)} supporting document zip(s) for dataset {metadata.file_identifier}")
+
         for supporting_document in supporting_document_zips:
             
             if supporting_document.download_url:
                 await self._process_zip_package(supporting_document.download_url, metadata.file_identifier)
+            else:
+                logger.warning(f"Supporting document {supporting_document.supporting_document_id} has no download URL")
         
         queue_item = await self._repo.dataset_supporting_document_queues.get_single(
             dataset_metadata_id=dataset_metadata_id
@@ -91,20 +97,21 @@ class EmbeddingService(IEmbeddingService):
             with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
                 ro_crate = self._load_ro_crate(z)
                 
-                for file_path in self._ro_crate_parser.extract_supported_files(ro_crate):
+                supported_files = self._ro_crate_parser.extract_supported_files(ro_crate)
+                logger.info(f"Processing {len(supported_files)} file(s) from zip for identifier: {identifier}")
+                
+                for file_path in supported_files:
                     await self._extract_and_ingest_file(z, file_path, identifier)
                     
         except Exception as ex:
-            logger.warning(f"Failed processing supporting document zip: {str(ex)}")
+            logger.error(f"Failed processing supporting document zip from {download_url}: {str(ex)}", exc_info=True)
 
     def _load_ro_crate(self, z: zipfile.ZipFile) -> dict:
 
         if SupportingDocumentConstants.RO_CRATE_METADATA_FILE not in z.namelist():
-            
             return {}
             
         with z.open(SupportingDocumentConstants.RO_CRATE_METADATA_FILE) as f:
-            
             return json.load(f)
 
     async def _extract_and_ingest_file(self, z: zipfile.ZipFile, file_path: str, identifier: str):
@@ -113,7 +120,6 @@ class EmbeddingService(IEmbeddingService):
         extractor = self._extractors.get(extension)
         
         if not extractor or file_path not in z.namelist():
-            
             return
             
         file_content = z.read(file_path)
@@ -126,4 +132,5 @@ class EmbeddingService(IEmbeddingService):
                 text=text,
                 source_file=file_path
             )
+            logger.info(f"Indexed document: {file_path} ({len(text)} chars)")
 

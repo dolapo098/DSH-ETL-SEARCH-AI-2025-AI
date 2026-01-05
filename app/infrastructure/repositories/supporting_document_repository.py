@@ -14,6 +14,7 @@ class SupportingDocumentRepository(BaseRepository[SupportingDocument], ISupporti
         super().__init__(SupportingDocument, session)
 
     async def find_supporting_zips_by_dataset_id(self, dataset_metadata_id: int) -> List[SupportingDocument]:
+
         result = await self.session.execute(
             select(self.model).filter(
                 self.model.dataset_metadata_id == dataset_metadata_id,
@@ -22,6 +23,6 @@ class SupportingDocumentRepository(BaseRepository[SupportingDocument], ISupporti
                 self.model.download_url.like(SupportingDocumentConstants.ZIP_EXTENSION_PATTERN)
             )
         )
-        
+
         return list(result.scalars().all())
 
