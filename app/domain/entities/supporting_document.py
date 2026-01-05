@@ -7,7 +7,7 @@ class SupportingDocument(Base):
     __tablename__ = "SupportingDocuments"
 
     supporting_document_id = Column("SupportingDocumentID", Integer, primary_key=True, autoincrement=True)
-    dataset_metadata_id = Column("DatasetMetadataID", Integer, ForeignKey("DatasetMetadata.DatasetMetadataID"), nullable=False)
+    dataset_metadata_id = Column("DatasetMetadataID", Integer, ForeignKey("DatasetMetadatas.DatasetMetadataID"), nullable=False)
     file_identifier = Column("FileIdentifier", String, nullable=False)
     title = Column("Title", String, nullable=True)
     description = Column("Description", Text, nullable=True)

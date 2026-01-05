@@ -6,7 +6,7 @@ from app.infrastructure.data_access.session import Base
 
 
 class DatasetMetadata(Base):
-    __tablename__ = "DatasetMetadata"
+    __tablename__ = "DatasetMetadatas"
 
     dataset_metadata_id = Column("DatasetMetadataID", Integer, primary_key=True, autoincrement=True)
     dataset_id = Column("DatasetID", String, nullable=False)

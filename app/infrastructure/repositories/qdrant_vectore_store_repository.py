@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from typing import Optional, List
 
@@ -114,11 +115,13 @@ class QdrantVectorStoreRepository(IVectorStoreRepository):
             if metadata:
                 payload.update(metadata)
 
-            point_id = (
+            point_id_str = (
                 f"{identifier}_{content_type}_{metadata.get('chunk_index')}"
                 if metadata and "chunk_index" in metadata
                 else f"{identifier}_{content_type}"
             )
+            
+            point_id = int(hashlib.md5(point_id_str.encode()).hexdigest(), 16) % (2**63)
 
             await self._client.upsert(
                 collection_name=self._collection,
@@ -146,11 +149,13 @@ class QdrantVectorStoreRepository(IVectorStoreRepository):
             points = []
             
             for emb, payload in zip(embeddings, payloads):
-                point_id = (
+                point_id_str = (
                     f"{identifier}_{content_type}_{payload.get('chunk_index')}"
                     if "chunk_index" in payload 
                     else f"{identifier}_{content_type}"
                 )
+                
+                point_id = int(hashlib.md5(point_id_str.encode()).hexdigest(), 16) % (2**63)
                 points.append({"id": point_id, "vector": emb, "payload": payload})
 
             await self._client.upsert(collection_name=self._collection, points=points)
