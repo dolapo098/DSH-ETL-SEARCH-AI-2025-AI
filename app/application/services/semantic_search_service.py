@@ -1,6 +1,7 @@
 import logging
 from typing import Optional, List
 
+from sqlalchemy import select
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.contracts.providers.i_embedding_provider import IEmbeddingProvider
@@ -20,6 +21,15 @@ logger = logging.getLogger(__name__)
 
 
 class SemanticSearchService(ISemanticSearchService):
+
+    DEFAULT_LIMIT = 10
+    MAX_LIMIT = 100
+    MIN_LIMIT = 1
+    DEFAULT_MIN_SCORE = 0.0
+    MIN_SCORE_THRESHOLD = 0.0
+    MAX_SCORE_THRESHOLD = 1.0
+
+
     def __init__(
         self,
         embedding_provider: IEmbeddingProvider,
@@ -27,6 +37,7 @@ class SemanticSearchService(ISemanticSearchService):
         repository_wrapper: RepositoryWrapper,
         batch_size: int = 50,
     ):
+
         self._embedding_provider = embedding_provider
         self._vector_store = vector_store_repository
         self._uow = repository_wrapper
@@ -48,30 +59,41 @@ class SemanticSearchService(ISemanticSearchService):
 
             vector_results = await self._vector_store.search_similar(
                 query_embedding, 
-                limit=query.limit, 
-                min_score=query.min_score
+                limit=self.DEFAULT_LIMIT, 
+                min_score=self.DEFAULT_MIN_SCORE
             )
 
             if not vector_results:
                 
                 return SearchResponse(query=query.query_text, results=[], count=0)
 
-            unique_ids = list(set(r.identifier for r in vector_results))
+            best_chunks: dict[str, SearchResult] = {}
+
+            for result in vector_results:
+                existing = best_chunks.get(result.identifier)
+
+                if existing is None or result.score > existing.score:
+                    best_chunks[result.identifier] = result
+
+            unique_ids = list(best_chunks.keys())
             
-            metadata_records = await self._uow.dataset_metadata.get_many(
-                DatasetMetadata.file_identifier.in_(unique_ids)
-            )
+            if not unique_ids:
+                metadata_records = []
+            else:
+                stmt = select(DatasetMetadata).where(DatasetMetadata.file_identifier.in_(unique_ids))
+                db_result = await self._uow.dataset_metadata.session.execute(stmt)
+                metadata_records = db_result.scalars().all()
             
             title_map = {m.file_identifier: m.title or "Untitled Dataset" for m in metadata_records}
 
             results = [
                 SearchResultItem(
-                    identifier=r.identifier,
-                    title=title_map.get(r.identifier, "Untitled Dataset"),
-                    description=r.text or r.description or "",
-                    score=r.score
+                    identifier=chunk.identifier,
+                    title=title_map.get(chunk.identifier, "Untitled Dataset"),
+                    description=chunk.text or chunk.description or "",
+                    score=chunk.score
                 )
-                for r in vector_results
+                for chunk in sorted(best_chunks.values(), key=lambda c: c.score, reverse=True)
             ]
 
             return SearchResponse(

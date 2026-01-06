@@ -16,8 +16,6 @@ class SearchController:
 
         query = SearchQuery(
             query_text=request.query,
-            limit=request.limit,
-            min_score=request.min_score,
             content_types=request.content_types
         )
 

@@ -10,6 +10,7 @@ from app.infrastructure.data_access.base_repository import BaseRepository
 
 
 class SupportingDocumentRepository(BaseRepository[SupportingDocument], ISupportingDocumentRepository):
+
     def __init__(self, session: AsyncSession):
         super().__init__(SupportingDocument, session)
 

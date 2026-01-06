@@ -16,6 +16,4 @@ class SearchResult:
 @dataclass
 class SearchQuery:
     query_text: str
-    limit: int = 10
-    min_score: float = 0.0
     content_types: Optional[List[str]] = field(default_factory=list)

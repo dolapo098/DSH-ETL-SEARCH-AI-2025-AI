@@ -9,7 +9,6 @@ from qdrant_client.models import (
     Filter,
     FieldCondition,
     MatchValue,
-    SearchParams,
 )
 
 from app.contracts.repositories.i_vector_store_repository import IVectorStoreRepository
@@ -67,26 +66,25 @@ class QdrantVectorStoreRepository(IVectorStoreRepository):
         try:
             await self._ensure_collection()
             
-            results = await self._client.search(
+            results = await self._client.query_points(
                 collection_name=self._collection,
-                query_vector=query_embedding,
+                query=query_embedding,
                 limit=limit,
-                search_params=SearchParams(hnsw_ef=128),
-                with_payload=True,
                 score_threshold=min_score if min_score > 0 else None,
+                with_payload=True
             )
 
             return [
                 SearchResult(
-                    identifier=r.payload.get("identifier"),
+                    identifier=r.payload.get("identifier", ""),
                     content_type=r.payload.get("content_type"),
                     text=r.payload.get("text"),
                     score=float(r.score),
-                    metadata=r.payload,
+                    metadata=r.payload or {},
                     title=r.payload.get("title"),
                     description=r.payload.get("description")
                 )
-                for r in results
+                for r in results.points
             ]
             
         except Exception as e:

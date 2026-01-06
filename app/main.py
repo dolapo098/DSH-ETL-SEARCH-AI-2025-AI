@@ -11,9 +11,9 @@ from app.routes.search_routes import router as search_router
 
 
 def setup_logging():
+
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(os.path.dirname(current_file_dir))
-    workspace_root = os.path.dirname(project_root)
+    workspace_root = os.path.dirname(os.path.dirname(current_file_dir))
     log_dir = os.path.join(workspace_root, "logs")
     os.makedirs(log_dir, exist_ok=True)
     
