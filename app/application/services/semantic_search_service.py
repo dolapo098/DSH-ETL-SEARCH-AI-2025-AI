@@ -133,6 +133,7 @@ class SemanticSearchService(ISemanticSearchService):
         try:
             
             if content_type.lower() == "document":
+                
                 splitter = RecursiveCharacterTextSplitter(
                     chunk_size=500,
                     chunk_overlap=50,
