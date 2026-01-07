@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 class SemanticSearchService(ISemanticSearchService):
 
-    DEFAULT_LIMIT = 10
+    DEFAULT_LIMIT = 100
     MAX_LIMIT = 100
     MIN_LIMIT = 1
     DEFAULT_MIN_SCORE = 0.0
@@ -59,23 +59,28 @@ class SemanticSearchService(ISemanticSearchService):
 
             vector_results = await self._vector_store.search_similar(
                 query_embedding, 
-                limit=self.DEFAULT_LIMIT, 
+                limit= self.DEFAULT_LIMIT,
                 min_score=self.DEFAULT_MIN_SCORE
             )
 
             if not vector_results:
-                
-                return SearchResponse(query=query.query_text, results=[], count=0)
+                return SearchResponse(query=query.query_text, results=[], count=0, total_count=0, limit=query.limit, offset=query.offset)
 
             best_chunks: dict[str, SearchResult] = {}
 
             for result in vector_results:
                 existing = best_chunks.get(result.identifier)
-
                 if existing is None or result.score > existing.score:
                     best_chunks[result.identifier] = result
 
-            unique_ids = list(best_chunks.keys())
+            # Grouped datasets
+            all_grouped_results = sorted(best_chunks.values(), key=lambda c: c.score, reverse=True)
+            total_count = len(all_grouped_results)
+            
+            # Paginate grouped results in memory
+            paginated_chunks = all_grouped_results[query.offset : query.offset + query.limit]
+
+            unique_ids = [c.identifier for c in paginated_chunks]
             
             if not unique_ids:
                 metadata_records = []
@@ -93,13 +98,16 @@ class SemanticSearchService(ISemanticSearchService):
                     description=chunk.text or chunk.description or "",
                     score=chunk.score
                 )
-                for chunk in sorted(best_chunks.values(), key=lambda c: c.score, reverse=True)
+                for chunk in paginated_chunks
             ]
 
             return SearchResponse(
                 query=query.query_text,
                 results=results,
-                count=len(results)
+                count=len(results),
+                total_count=total_count,
+                limit=query.limit,
+                offset=query.offset
             )
 
         except (InvalidSearchQueryException, EmbeddingGenerationException):

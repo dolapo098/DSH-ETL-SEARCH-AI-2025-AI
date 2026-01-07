@@ -60,6 +60,7 @@ class QdrantVectorStoreRepository(IVectorStoreRepository):
         self,
         query_embedding: List[float],
         limit: int = 10,
+        offset: int = 0,
         min_score: float = 0.0,
     ) -> List[SearchResult]:
 
@@ -70,6 +71,7 @@ class QdrantVectorStoreRepository(IVectorStoreRepository):
                 collection_name=self._collection,
                 query=query_embedding,
                 limit=limit,
+                offset=offset,
                 score_threshold=min_score if min_score > 0 else None,
                 with_payload=True
             )

@@ -16,7 +16,9 @@ class SearchController:
 
         query = SearchQuery(
             query_text=request.query,
-            content_types=request.content_types
+            content_types=request.content_types,
+            limit=request.limit,
+            offset=request.offset
         )
 
         return await service.perform_semantic_context(query)

@@ -12,6 +12,7 @@ class IVectorStoreRepository(Protocol):
         self, 
         query_embedding: List[float], 
         limit: int = 10, 
+        offset: int = 0,
         min_score: float = 0.0
     ) -> List[SearchResult]:
         """
@@ -20,6 +21,7 @@ class IVectorStoreRepository(Protocol):
         Args:
             query_embedding (List[float]): The vector representation of the query.
             limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
             min_score (float): Minimum similarity score threshold.
 
         Returns:

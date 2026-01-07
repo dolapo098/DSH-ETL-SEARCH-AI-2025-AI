@@ -14,11 +14,16 @@ class SearchResponse(BaseModel):
     query: str
     results: List[SearchResultItem]
     count: int
+    total_count: int
+    limit: int
+    offset: int
 
 
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1)
     content_types: Optional[List[str]] = None
+    limit: int = Field(default=10, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
 
 
 class DeleteEmbeddingsRequest(BaseModel):
