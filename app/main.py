@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.infrastructure.middleware.api_exception_handlers import register_exception_handlers
 from app.routes.embedding_routes import router as embedding_router
@@ -49,7 +50,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
 app.include_router(embedding_router)
 app.include_router(search_router)
+
+@app.options("/{rest_of_path:path}")
+async def preflight_handler():
+    return {}
 
 register_exception_handlers(app)
