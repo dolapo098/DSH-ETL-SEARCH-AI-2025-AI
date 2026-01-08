@@ -19,3 +19,4 @@ class SearchQuery:
     content_types: Optional[List[str]] = field(default_factory=list)
     limit: int = 10
     offset: int = 0
+    min_score: Optional[float] = None

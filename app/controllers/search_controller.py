@@ -18,7 +18,8 @@ class SearchController:
             query_text=request.query,
             content_types=request.content_types,
             limit=request.limit,
-            offset=request.offset
+            offset=request.offset,
+            min_score=request.min_score # Propagating threshold to domain
         )
 
         return await service.perform_semantic_context(query)

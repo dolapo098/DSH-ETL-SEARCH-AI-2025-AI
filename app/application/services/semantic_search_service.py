@@ -25,7 +25,7 @@ class SemanticSearchService(ISemanticSearchService):
     DEFAULT_LIMIT = 100
     MAX_LIMIT = 100
     MIN_LIMIT = 1
-    DEFAULT_MIN_SCORE = 0.0
+    DEFAULT_MIN_SCORE = 0.65
     MIN_SCORE_THRESHOLD = 0.0
     MAX_SCORE_THRESHOLD = 1.0
 
@@ -57,10 +57,14 @@ class SemanticSearchService(ISemanticSearchService):
                 
                 raise EmbeddingGenerationException("Failed to generate embedding for query")
 
+            # Resolve effective threshold: Request > Config > Default
+            effective_threshold = query.min_score if query.min_score is not None else self.DEFAULT_MIN_SCORE
+            logger.info(f"🔍 Semantic Search: Query='{query.query_text}', Effective Threshold={effective_threshold}")
+
             vector_results = await self._vector_store.search_similar(
                 query_embedding, 
                 limit= self.DEFAULT_LIMIT,
-                min_score=self.DEFAULT_MIN_SCORE
+                min_score=effective_threshold
             )
 
             if not vector_results:
