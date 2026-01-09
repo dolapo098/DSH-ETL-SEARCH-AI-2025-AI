@@ -21,6 +21,7 @@ from app.infrastructure.providers.sentence_transformer_embedding_provider import
 from app.infrastructure.providers.word_document_extractor import WordDocumentExtractor
 from app.infrastructure.providers.zip_downloader import ZipDownloader
 from app.infrastructure.repositories.qdrant_vectore_store_repository import QdrantVectorStoreRepository
+from app.infrastructure.factories.llm_provider_factory import LLMProviderFactory
 
 
 @lru_cache()
@@ -45,8 +46,6 @@ def get_llm_provider() -> ILLMProvider:
     Returns the LLM provider for both intent extraction and answer synthesis.
     Uses Factory Pattern with dictionary registry. Defaults to Google Gemini.
     """
-
-    from app.infrastructure.factories.llm_provider_factory import LLMProviderFactory
     
     return LLMProviderFactory.create()
 

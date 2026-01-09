@@ -2,6 +2,7 @@ import os
 import logging
 from typing import Dict, Type, Any, Optional
 from app.contracts.providers.i_llm_provider import ILLMProvider
+from app.infrastructure.providers.gemini_provider import GeminiProvider
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,6 @@ class LLMProviderFactory:
 
         try:
             
-            from app.infrastructure.providers.gemini_provider import GeminiProvider
             cls._registry["gemini"] = GeminiProvider
             logger.debug("Registered GeminiProvider")
 

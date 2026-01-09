@@ -29,7 +29,6 @@ env.bak/
 venv.bak/
 
 # Environment variables
-.env
 .flaskenv
 
 # Database

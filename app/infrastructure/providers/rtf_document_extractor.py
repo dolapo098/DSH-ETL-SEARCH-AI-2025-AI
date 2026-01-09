@@ -1,7 +1,5 @@
 from striprtf.striprtf import rtf_to_text
-
 from app.contracts.providers.i_document_text_extractor import IDocumentTextExtractor
-
 
 class RtfDocumentExtractor(IDocumentTextExtractor):
 
