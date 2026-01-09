@@ -1,112 +1,170 @@
-[[_TOC_]]
+# AI Search & Intelligence Engine
 
-# **Overview**
+## Overview
 
-The **AI Search & Intelligence Engine** is the "Heavy Lifting" component of the system. It receives instructions from the Ingestion Hub, downloads actual scientific files, extracts their text, and builds a sophisticated semantic search index.
+The **AI Search & Intelligence Engine** is the core component of the DSH ETL Search & Discovery Platform. It provides intelligent semantic search capabilities and conversational AI assistance for discovering scientific datasets. The system uses advanced natural language processing to understand user queries, extract intent, and retrieve relevant datasets from a vector database.
 
-# **Requirements**
+Key capabilities include:
 
-- **Runtime**: Python 3.10+
-- **Environment**: Virtual Environment (`venv`)
-- **Vector Store**: Qdrant (deployed via Docker)
-- **Relational Store**: SQLite (shared with .NET service)
-- **NLP Model**: `all-MiniLM-L6-v2` (Sentence-Transformers)
-- **Unit Test**: Pytest
+- **Semantic Search**: Natural language queries that understand context and synonyms
+- **Conversational Agent**: AI-powered chat interface for dataset discovery
+- **Vector Indexing**: Automatic extraction and embedding of scientific documents
+- **Smart Deduplication**: Returns highest-scoring results per dataset to prevent flooding
 
-# **Setup**
+---
 
-## **Infrastructure (Docker)**
+## Requirements
 
-The vector database is hosted in Qdrant. Ensure it is running via Docker:
+| Component               | Specification                              |
+| ----------------------- | ------------------------------------------ |
+| **Runtime**             | Python 3.10+                               |
+| **Environment**         | Virtual Environment (`venv`)               |
+| **Vector Store**        | Qdrant (deployed via Docker)               |
+| **Relational Database** | SQLite (shared with .NET service)          |
+| **NLP Model**           | `all-MiniLM-L6-v2` (Sentence-Transformers) |
+| **LLM Provider**        | Google Gemini (Free Tier)                  |
+| **API Framework**       | FastAPI                                    |
+| **Testing**             | Pytest                                     |
+
+---
+
+## Setup
+
+### 1. Infrastructure (Docker)
+
+Start the Qdrant vector database:
 
 ```bash
 docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
 ```
 
-## **Dependencies**
+Verify Qdrant is running:
 
-All requirements are managed via `requirements.txt`.
+- **Dashboard**: http://localhost:6333/dashboard
+- **Collection**: `embeddings`
 
-1. Activate the environment: `.\venv\Scripts\activate`.
-2. Install dependencies: `pip install -r requirements.txt`.
-3. Ensure the Qdrant service is running.
+### 2. Python Environment
 
-# **Database & Storage**
+1. Create and activate virtual environment:
 
-The database and logging system share the same space at the root of the solution, ensuring a centralized location for persistence and audit trails across both the .NET and Python services.
+   ```bash
+   python -m venv venv
+   .\venv\Scripts\activate  # Windows
+   source venv/bin/activate  # Linux/Mac
+   ```
 
-- **Relational Database (SQLite)**:
+2. Install dependencies:
 
-  - **File Name**: `etl_database.db`
-  - **Physical Location**: Accessible within the same directory with the Project folder
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- **System Logs**:
+3. Configure environment variables:
+   Create a `.env` file in the project root:
+   ```env
+   GEMINI_API_KEY=your_api_key_here
+   LLM_MODEL=gemini-flash-latest
+   ```
+   Get your free API key at: https://aistudio.google.com
 
-  - **Location**: Found in the `\logs` Accessible within the same directory with the Project folder
-  - **Files**: `python-service.log` and `etl-*.log`.
+### 3. Database & Storage
 
-- **Vector Storage (Qdrant)**:
-  - **Technology**: Qdrant Vector Database (running in Docker).
-  - **Collection**: `embeddings`.
+- **SQLite Database**: `etl_database.db` (shared with .NET service)
+- **Logs**: `logs/python-service.log`
+- **Vector Store**: Qdrant collection `embeddings` on port 6333
 
-# **User Guide**
+### 4. Start the Service
 
-## **The "Heavy Lifting" Workflow**
+```bash
+# Set Python path
+$env:PYTHONPATH="."  # Windows PowerShell
+export PYTHONPATH="."  # Linux/Mac
 
-When triggered, the engine performs the following automated steps:
+# Run the service
+uvicorn app.main:app --host 0.0.0.0 --port 8001
+```
 
-| Step                      | Action           | Description                                                                   |
-| ------------------------- | ---------------- | ----------------------------------------------------------------------------- |
-| **1. Resource Retrieval** | Remote Download  | Retrieves ZIP packages using the metadata URLs provided by the Hub.           |
-| **2. Package Extraction** | RO-Crate Parsing | Opens ZIP files and reads metadata to locate **.pdf, .docx, and .rtf** files. |
-| **3. Text Extraction**    | Deep Reading     | Converts scientific text from documents into AI-readable formats.             |
-| **4. Vector Indexing**    | Semantic Storage | Breaks text into concepts and saves them in the **Semantic Vault**.           |
+**API Documentation**: http://localhost:8001/docs
 
-## **Search Capabilities**
+---
 
-| Capability              | Description                                                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Smart Deduplication** | Collapses results by dataset identifier, returning only the **highest-scoring chunk** per dataset to prevent response flooding. |
-| **Natural Language**    | Ask questions like: _"What datasets discuss carbon levels in soils?"_                                                           |
-| **Concept Linking**     | Finds results by understanding synonyms, even if exact words are missing.                                                       |
-| **Deep Search**         | Retrieves results based on content found **inside** attached reports (PDF, Word, RTF).                                          |
+## User Guide
 
-# **Operating Instructions**
+The following table describes all available functionalities in the system:
 
-## **Performing a Search**
+| Functionality            | Endpoint                      | Method | Description                                                                                                                                                                                                      | Use Case                                                                                                                   |
+| ------------------------ | ----------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Semantic Search**      | `/search/semantic`            | POST   | Performs natural language search across indexed datasets. Returns results ranked by semantic similarity with deduplication (highest-scoring chunk per dataset).                                                  | Find datasets using conversational queries like "water quality data" or "climate change measurements"                      |
+| **Delete Embeddings**    | `/search/delete-embeddings`   | POST   | Removes all vector embeddings for a specific dataset identifier from the vector store. Useful for reprocessing or removing outdated data.                                                                        | Clean up AI memory when a dataset is removed or needs re-indexing                                                          |
+| **Ingest Metadata**      | `/embeddings/ingest-metadata` | POST   | Extracts and indexes metadata (title, abstract) from dataset records. Creates vector embeddings for semantic search.                                                                                             | Initial indexing of dataset metadata without processing supporting documents                                               |
+| **Process Dataset**      | `/embeddings/process-dataset` | POST   | Full dataset processing pipeline: downloads ZIP packages, extracts supporting documents (PDF, DOCX, RTF), extracts text, and creates embeddings for deep content search.                                         | Complete indexing including document content for comprehensive search capabilities                                         |
+| **Conversational Agent** | `/agent/chat`                 | POST   | AI-powered conversational interface for dataset discovery. Uses RAG (Retrieval-Augmented Generation) to understand user intent, search the vector store, and generate natural language responses with citations. | Interactive chat interface where users can ask questions about datasets in natural language and receive contextual answers |
 
-You can interact with the service directly via the **Swagger UI**:
+### Example Usage
 
-- **API URL**: `http://localhost:8000/docs`
-- **Endpoint**: `/search/semantic`
-- **Filtering**: Restrict searches to specific `content_types` (e.g., Titles only).
+#### Semantic Search
 
-## **Inspecting the Vector Store**
+```json
+POST /search/semantic
+{
+  "query": "carbon levels in soil",
+  "limit": 5,
+  "offset": 0
+}
+```
 
-Monitor embeddings and collection status via the **Qdrant Dashboard**:
+#### Conversational Agent
 
-- **URL**: [http://localhost:6333/dashboard#/collections/embeddings](http://localhost:6333/dashboard#/collections/embeddings)
+```json
+POST /agent/chat
+{
+  "message": "What datasets discuss coastal erosion?",
+  "history": []
+}
+```
 
-## **Managing AI Memory**
+---
 
-If a dataset is removed or needs updating:
+## Architecture
 
-1. Use **Delete Embeddings** to wipe the AI's memory of a specific dataset.
-2. Trigger a **Reprocess** from the Ingestion Hub to rebuild the index.
+The system follows **Clean Architecture** principles with clear separation of concerns:
 
-# **Troubleshooting**
+- **Controllers**: Handle HTTP requests/responses
+- **Services**: Business logic orchestration
+- **Repositories**: Data access abstraction
+- **Providers**: External service integrations (LLM, embeddings)
+- **Factories**: Provider creation with registry pattern
 
-| Issue                        | Potential Cause          | Resolution                                                            |
-| ---------------------------- | ------------------------ | --------------------------------------------------------------------- |
-| **Slow First Run**           | AI Model is downloading. | Wait for the ~500MB model download to complete on first launch.       |
-| **Search Returns 0 Results** | Indexing in progress.    | Wait 30 seconds after ingestion for the "Heavy Lifting" to finish.    |
-| **Vector Store Error**       | Database disconnected.   | Check that Qdrant is running on port 6333. Run `docker ps` to verify. |
+### Key Design Patterns
 
-# **Verification & Testing**
+- **Strategy Pattern**: `ILLMProvider` interface for interchangeable LLM implementations
+- **Factory Pattern**: `LLMProviderFactory` with dictionary-based registry
+- **Dependency Injection**: FastAPI's `Depends()` for service wiring
+- **Repository Pattern**: Abstracted data access layer
 
-To verify processing success:
+---
 
-1. Navigate to: `http://localhost:8000/docs`
-2. Use the `/search/semantic` endpoint.
-3. Type a specific sentence from an uploaded document.
-4. A high similarity score (0.9+) confirms successful ingestion.
+## Troubleshooting
+
+| Issue                        | Potential Cause       | Resolution                                                 |
+| ---------------------------- | --------------------- | ---------------------------------------------------------- |
+| **Slow First Run**           | AI model downloading  | Wait for ~500MB model download to complete on first launch |
+| **Search Returns 0 Results** | Indexing in progress  | Wait 30 seconds after ingestion for processing to finish   |
+| **Vector Store Error**       | Qdrant disconnected   | Verify Qdrant is running: `docker ps` or check port 6333   |
+| **API Error 429**            | Gemini quota exceeded | Check API usage limits or wait for quota reset             |
+| **Connection Refused**       | Service not running   | Ensure uvicorn is running on port 8001                     |
+
+---
+
+## Verification & Testing
+
+1. Navigate to: http://localhost:8001/docs
+2. Use the `/search/semantic` endpoint
+3. Type a specific sentence from an uploaded document
+4. A high similarity score (0.9+) confirms successful ingestion
+
+---
+
+## License
+
+This project is part of the DSH ETL Search & Discovery Platform.

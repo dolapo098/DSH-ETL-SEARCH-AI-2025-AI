@@ -68,8 +68,16 @@ class GeminiProvider(ILLMProvider):
                 
                 if response.status_code != 200:
                     
-                    logger.error(f"Gemini API Error [{response.status_code}]: {response.text}")
-                    return "I'm sorry, I'm having trouble thinking right now."
+                    # Robust error parsing
+                    try:
+                        error_data = response.json()
+                        error_msg = error_data.get("error", {}).get("message", "Unknown API Error")
+                    except:
+                        error_msg = response.text[:200]
+                    
+                    logger.error(f"Gemini API Error [{response.status_code}]: {error_msg}")
+                    
+                    return f"I'm sorry, I'm having trouble thinking right now. (API Error {response.status_code}: {error_msg})"
                 
                 data = response.json()
                 
@@ -83,7 +91,7 @@ class GeminiProvider(ILLMProvider):
         except Exception as e:
             
             logger.error(f"Gemini API unexpected error: {str(e)}", exc_info=True)
-            return "I'm sorry, I encountered an unexpected error while processing your request."
+            return f"I'm sorry, I encountered an unexpected error: {str(e)}"
 
     async def extract_intent(self, prompt: str) -> ExtractionResult:
         """
@@ -112,11 +120,18 @@ class GeminiProvider(ILLMProvider):
                 
                 if response.status_code != 200:
                     
-                    logger.error(f"Gemini API Error [{response.status_code}]: {response.text}")
+                    try:
+                        error_data = response.json()
+                        error_msg = error_data.get("error", {}).get("message", "Unknown API Error")
+                    except:
+                        error_msg = response.text[:200]
+                    
+                    logger.error(f"Gemini API Error [{response.status_code}]: {error_msg}")
+                    
                     return ExtractionResult(
                         is_search_required=False,
                         search_query=None,
-                        reasoning="Gemini API unreachable"
+                        reasoning=f"Gemini API unreachable ({response.status_code}: {error_msg})"
                     )
 
                 data = response.json()
