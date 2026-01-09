@@ -2,13 +2,17 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
+from dotenv import load_dotenv
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+load_dotenv()
+
 from app.infrastructure.middleware.api_exception_handlers import register_exception_handlers
 from app.routes.embedding_routes import router as embedding_router
 from app.routes.search_routes import router as search_router
+from app.routes.agent_routes import router as agent_router
 
 
 def setup_logging():
@@ -61,6 +65,7 @@ app.add_middleware(
 
 app.include_router(embedding_router)
 app.include_router(search_router)
+app.include_router(agent_router)
 
 @app.options("/{rest_of_path:path}")
 async def preflight_handler():
